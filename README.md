@@ -1,5 +1,8 @@
 # 2023-CITS3200-Team26's Wave Dashboard
 
+###
+- Note: This repository contains development builds. All code used in production uses different keys and certificates than those committed here, and environment variables are used for sensitive information.
+
 ### The Stack
 
 - Django for both back-end & front-end
