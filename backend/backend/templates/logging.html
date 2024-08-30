@@ -1,0 +1,129 @@
+{% extends "_base.html" %}
+{% load i18n %}
+{% load static %}
+{% block title %}{% trans "Logging" %}{% endblock %}
+{% block nav_logging %}active{% endblock %}
+
+{% block extra_media %}
+  <link rel="stylesheet" href="{% static 'loader.css' %}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="loggingview">
+    <div>
+        {% include "file_arrival.html" %}
+        <hr>
+        <h2>Logs</h2>
+        <div class="input-group w-100 mr-auto" style="margin-bottom: 10px">
+            <span class="input-group-text" id="basic-prepend">File</span>
+            <select class="form-select" aria-label="Default select example" id="log_files">
+                <option selected hidden>Select a file</option>
+                {% for file in log_files %}
+                <option value="{{ file }}">
+                    {{ file }}
+                </option>
+                {% endfor %}
+            </select>
+            <span class="input-group-text" id="basic-prepend">Date Range</span>
+            <input style="text-align: center;" class="flatpickr flatpickr-input active form-control" type="text" placeholder="Select Date Range.." readonly="readonly">
+            <button class="btn btn-outline-secondary" type="button" onclick='getLogData(document.getElementById("log_files").value)'>Search</button>
+        </div>
+        <div style="margin-bottom: 2rem;">
+            <input class="form-check-input" type="checkbox" value="skipinfo" id="ignoreINFO">
+            <label class="form-check-label" for="ignoreINFO">Ignore INFO logs</label>
+            <input class="form-check-input" type="checkbox" value="skiptable" id="ignoreTable">
+            <label class="form-check-label" for="ignoreTable">Ignore tables</label>
+        </div>
+    </div>
+
+    <div class="loader" style="display: none"></div>
+    <div id="logs"></div>
+</div>
+
+<script>
+
+    $(document).ready(function () {
+    $( '.flatpickr' ).flatpickr({
+        mode: "range",
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        time_24hr: true,
+        minuteIncrement: 5,
+        defaultHour: 0,
+        defaultMinute: 0,
+        onChange: function(selectedDates, dateStr, instance) {
+            if (selectedDates.length == 2) {
+                console.log(selectedDates);
+            }
+        },
+    });
+    });
+
+    function formatDateToYYMMDDHH(date) {
+        if (isNaN(date)) {
+            return 'none';
+        }
+        let yy = date.getFullYear().toString();
+        let mm = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-based
+        let dd = date.getDate().toString().padStart(2, '0');
+        let hh = date.getHours().toString().padStart(2, '0');
+        let min = date.getMinutes().toString().padStart(2, '0');
+
+        return `${yy}-${mm}-${dd} ${hh}:${min}`;
+    }
+    
+    function getLogData(value) {
+        $("#logs").css("display", "none");
+        $(".loader").css("display", "block");
+        const baseUrl = "/log_request/";
+        const params = new URLSearchParams({
+            file: value,
+            startDate: formatDateToYYMMDDHH(document.querySelector('.flatpickr')._flatpickr.selectedDates[0]), // selectedDates is a global variable from flatpickr
+            endDate: formatDateToYYMMDDHH(document.querySelector('.flatpickr')._flatpickr.selectedDates[1]),
+            ignoreINFO: document.getElementById("ignoreINFO").checked,
+            ignoreTable: document.getElementById("ignoreTable").checked,
+        });
+        const url = `${baseUrl}?${params}`;
+        console.log(url);
+        const data = fetch(url)
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                console.log(response);
+                return response.json();
+            })
+            .then((data) => {
+                console.log(data);
+                var logs = document.getElementById("logs");
+                logs.innerHTML = "";
+                for (var key in data) {
+                    var header = document.createElement("h3");
+                    header.style = "color:brown";
+                    var p = document.createElement("pre");
+                    header.innerHTML = key;
+                    for (i in data[key]) {
+                        p.innerHTML += data[key][i] + "<br>";
+                    }
+                    logs.appendChild(header);
+                    logs.appendChild(p);
+                }
+                $(".loader").css("display", "none");
+                $("#logs").css("display", "block");
+                return data;
+            })
+            .catch((error) => {
+                $(".loader").css("display", "none");
+                console.error(
+                    "There was a problem with the fetch operation:",
+                    error.message
+                );
+            });
+    }
+
+</script>
+
+{% endblock %}

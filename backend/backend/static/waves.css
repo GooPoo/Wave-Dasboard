@@ -1,0 +1,116 @@
+html, body { height: 100%; }
+body {
+  background:radial-gradient(ellipse at center, rgba(255,254,234,1) 0%, rgba(255,254,234,1) 35%, #B7E8EB 100%);
+  overflow: hidden;
+  font-family: Verdana, sans-serif;
+}
+
+#logo {
+  width: 16em;
+  z-index: 1;
+}
+
+#title-text {
+  font-size: large;
+  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  padding-top: 6.9em;
+}
+
+#sub-title {
+  font-size: 2.5em;
+  font-weight: bold;
+  color: #fbaf1e;
+  z-index: 1;
+}
+
+#title {
+  font-size: 3.3em;
+  font-weight: bold;
+  color: #ae1a28;
+  z-index: 1;
+}
+
+#vertical-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+}
+
+.flex-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.container {
+  flex: 1 1 auto;
+}
+
+#content {
+  font-size: large;
+  display: flex;
+  flex-direction: row;
+  gap: 1em;
+  align-items: center;
+  padding-top: 2em;
+  padding-bottom: 1em;
+}
+
+#content p {
+    z-index: 1;
+}
+
+.ocean { 
+  height: 0%;
+  width: 100vw;
+  background: #015871;
+}
+
+.ocean-waves {
+  height: 20%;
+}
+
+.waves {
+  position: absolute; /* Position it absolutely... */
+  bottom: 0; /* ...at the bottom of its positioned parent */
+  height: 25%; /* Set its height to 78% of the parent */
+}
+
+.wave {
+  background: url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/85486/wave.svg) bottom repeat-x;
+  width: 6400px;
+  height: 100%;
+  animation: wave 7s cubic-bezier( 0.36, 0.45, 0.63, 0.53) infinite;
+  transform: translate3d(0, 0, 0);
+  position: absolute;
+  background-size: 1600px 100%;
+  top: 3.5%
+}
+
+.wave:nth-of-type(2) {
+  top: 11.5%;
+  animation: wave 7s cubic-bezier( 0.36, 0.45, 0.63, 0.53) -.125s infinite, swell 7s ease -1.25s infinite;
+  opacity: 1;
+}
+
+@keyframes wave {
+  0% {
+    margin-left: 0;
+  }
+  100% {
+    margin-left: -1600px;
+  }
+}
+
+@keyframes swell {
+  0%, 100% {
+    transform: translate3d(0,-11.5%,0);
+  }
+  50% {
+    transform: translate3d(0,3.5%,0);
+  }
+}

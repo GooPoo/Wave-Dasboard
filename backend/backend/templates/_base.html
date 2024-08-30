@@ -1,0 +1,84 @@
+{% load static %}
+{% load i18n %}
+
+<!DOCTYPE html>
+<html {% if LANGUAGE_BIDI %}dir="rtl" {% endif %}>
+
+<head>
+    <title>{% block title %}{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.1/css/bootstrap.min.css"
+          crossorigin="anonymous" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.1/js/bootstrap.min.js"
+            crossorigin="anonymous"></script>
+    <style>
+        .navbar-right {
+            margin-left: auto !important;
+        }
+    </style>
+    {% block extra_media %}{% endblock %}
+</head>
+
+<body>
+{% block content_wrapper %}
+<div class="flex-container">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light mb-3">
+        <div class="container">
+            <!-- Logo -->
+            <a class="navbar-brand" href="{% url 'home' %}">{% trans "ICRAR" %}</a>
+
+            <!-- Toggle button -->
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1"
+                    aria-controls="bs-example-navbar-collapse-1" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <!-- Left side items -->
+          </li>
+          <ul class="navbar-nav" style="font-size: x-large;">
+                    <li class="nav-item {% block nav_secret %}{% endblock %}">
+                        <a class="nav-link" href="{% url 'combined' %}">{% trans "Forecasts" %}</a>
+                    </li>
+                    <li class="nav-item {% block nav_logging %}{% endblock %}">
+                        <a class="nav-link" href="{% url 'logging' %}">{% trans "Logs" %}</a>
+                    </li>
+                </ul>
+
+                <!-- Right side items -->
+                <ul class="navbar-nav navbar-right">
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link">{{ user }} {% if user.otp_device %}🔒{% endif %}</a>
+                    </li>
+                    <li class="nav-item {% block nav_profile %}{% endblock %}">
+                        <a class="nav-link" href="{% url 'two_factor:profile' %}">{% trans "2FA" %}</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}">{% trans "Logout" %}</a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <span class="navbar-text">{% trans "" %}</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'two_factor:login' %}">{% trans "Login" %}</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% include "_messages.html" %}
+        {% block content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}
+</body>
+
+</html>
+

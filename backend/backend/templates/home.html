@@ -1,0 +1,31 @@
+{% extends "_base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "UWA CITS3200 Group 26" %}{% endblock %}
+{% block nav_home %}active{% endblock %}
+{% block extra_media %}
+  <link rel="stylesheet" href="{% static 'waves.css' %}">
+{% endblock %}
+
+{% block content %}
+<div id="vertical-content">
+  <div id="content">
+    <img id="logo" src="{% static 'ICRAR_logo.png' %}">
+    <div id="title-text">
+      <h1 id="title">{% blocktrans trimmed %} Waves Dashboard {% endblocktrans %}</h1>
+      <h2 id="sub-title">Revealing The<br>Big Picture</h2>
+    </div>
+    {% blocktrans trimmed %} 
+    {% endblocktrans %}
+  </div>
+
+  <div class="ocean-waves">
+    <div class="waves">
+      <div class="wave"></div>
+      <div class="wave"></div>
+    </div>
+    <div class="ocean"></div>
+  </div>
+</div>
+{% endblock %}

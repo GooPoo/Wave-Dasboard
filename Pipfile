@@ -1,0 +1,23 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+django = "*"
+djangorestframework = "*"
+django-two-factor-auth = "*"
+django-user-sessions = "*"
+django-debug-toolbar = "*"
+django-bootstrap-form = "*"
+django-phonenumbers = "*"
+django-environ = "*"
+django-extensions = "*"
+django-werkzeug-debugger-runserver = "*"
+twilio = "*"
+xarray = "*"
+h5netcdf = "*"
+pandas = "*"
+
+[requires]
+python_version = "3.11"

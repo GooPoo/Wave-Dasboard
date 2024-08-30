@@ -1,0 +1,66 @@
+<div>
+    <div style="display: flex; flex-direction: row; gap: 15px; margin-bottom: 10px;">
+        <h2>File Arrival Times</h2>
+        <button onclick=getArrivalTimes() type="button" class="btn btn-primary">Refresh</button>
+    </div>
+    <div id="times" style="display: flex; flex: auto; flex-direction: row; align-items: flex-start; max-height: 20vh; overflow-y: scroll;"></div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        getArrivalTimes();
+    });
+
+    function getArrivalTimes() {
+    const baseUrl = "/file_arrival_times/";
+    console.log(baseUrl);
+    
+    var times = document.getElementById("times");
+    times.innerHTML = "Loading...";
+    const data = fetch(baseUrl)
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            console.log(response);
+            return response.json();
+        })
+        .then((data) => {
+            console.log(data);
+            var times = document.getElementById("times");
+            times.innerHTML = "";
+            
+            for (var key in data) {
+                var div = document.createElement("div");
+                var h4 = document.createElement("h4");
+                var table = document.createElement("table");
+                table.style = "margin-right:15px; word-wrap: break-word; white-space: nowrap;"
+                h4.innerHTML = key;
+                for (files in data[key]) {
+                    var row = document.createElement("tr");
+                    var filename = document.createElement("td");
+                    var time = document.createElement("td");
+
+                    filename.style = "color:brown; font-weight: bold; padding-right: 15px;";
+
+                    filename.innerHTML = data[key][files][0];
+                    time.innerHTML =  data[key][files][1];
+                    row.appendChild(filename);
+                    row.appendChild(time);
+                    table.appendChild(row);
+                }
+                div.append(h4);
+                div.append(table);
+                times.append(div);
+            }
+            return data;
+        })
+        .catch((error) => {
+            times.innerHTML = "There was a problem with the fetch operation, check the console";
+            console.error(
+                "There was a problem with the fetch operation:",
+                error.message
+            );
+        });
+    }
+</script>

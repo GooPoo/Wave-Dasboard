@@ -1,0 +1,421 @@
+<div id="tooltip"
+    style="position: absolute; display: none; background-color: white; border: 1px solid black; padding: 5px;"></div>
+<div id="graphContainer">
+</div>
+<div class="loader" style="display: none"></div>
+<div>
+    <div class="input-group w-50 mx-auto">
+        <span class="input-group-text" id="basic-prepend">Station</span>
+        <select class="form-select" aria-label="Default select example" id="station">
+            <option value="0">1</option>
+            <option value="1">2</option>
+            <option value="2">3</option>
+            <option value="3">4</option>
+            <option value="4">5</option>
+            <option value="5">6</option>
+            <option value="6">7</option>
+            <option value="7">8</option>
+        </select>
+        <span class="input-group-text" id="basic-prepend">Date Range</span>
+        <input style="text-align: center;" class="flatpickr flatpickr-input active form-control" type="text"
+            placeholder="Select Date Range.." readonly="readonly">
+    </div>
+</div>
+<script type="module">
+    import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+
+    $(document).ready(function () {
+        let endDate = new Date();
+        let startDate = new Date(endDate - 7 * 24 * 60 * 60 * 1000);
+        $('.flatpickr').flatpickr({
+            mode: "range",
+            enableTime: true,
+            dateFormat: "Y-m-d H",
+            time_24hr: true,
+            minuteIncrement: 60,
+            defaultHour: 0,
+            defaultMinute: 0,
+            onChange: function (selectedDates, dateStr, instance) {
+                if (selectedDates.length == 2) {
+                    console.log(selectedDates);
+                    startDate = selectedDates[0];
+                    endDate = selectedDates[1];
+                    updateGraphRange(selectedDates[0], selectedDates[1]);
+                }
+            },
+        });
+
+        $('#station').on('change', function () {
+            updateGraphRange(startDate, endDate);
+        });
+
+        updateGraphRange(startDate, endDate);
+    });
+
+    function formatDateToYYMMDDHH(date) {
+        let yy = date.getFullYear().toString();
+        let mm = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-based
+        let dd = date.getDate().toString().padStart(2, '0');
+        let hh = date.getHours().toString().padStart(2, '0');
+
+        return yy + mm + dd + hh;
+    }
+
+    // Helper function to convert %Y%m%d%H string to a JavaScript Date object
+    function convertToJSDate(dateString) {
+        let year = parseInt(dateString.substring(0, 4), 10);
+        let month = parseInt(dateString.substring(4, 6), 10) - 1; // JS months are 0-indexed
+        let day = parseInt(dateString.substring(6, 8), 10);
+        let hour = parseInt(dateString.substring(8, 10), 10);
+
+        return new Date(year, month, day, hour);
+    }
+
+    function drawGraph(data, startDate, endDate) {
+        // Declare the chart dimensions and margins.
+        let width = document.getElementById('graphContainer').getBoundingClientRect().width;
+        let height = 400;
+        let marginTop = 20;
+        let marginRight = 70;
+        let marginBottom = 35;
+        let marginLeft = 60;
+        let yLegendTextSize = 24;
+
+        // Graph variables
+        let waveHeightMarkerRadius = 3;
+
+        // Custom time format functions
+        let dayFormat = d3.timeFormat("%a");
+        let timeFormat = d3.timeFormat("%H:%M");
+
+        let barWidth = 20.0;
+
+
+        // Declare the x (horizontal position) scale.
+        let x = d3.scaleTime()
+            .domain([startDate, endDate])
+            .range([marginLeft, width - marginRight]);
+
+        // Declare the y (vertical position) scale.
+        let yLeft = d3.scaleLinear()
+            .domain([0, 15])
+            .range([height - marginBottom, marginTop]);
+
+        // Create the SVG container.
+        let svg = d3.create("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        // Calculate all 12-hour interval ticks from sevenDaysAgo to now
+        let tickValues = d3.timeMinute.range(startDate, endDate, Math.max(Math.round((endDate.getTime() - startDate.getTime()) / 1000 / 60 / 60 / 24 / 7), 1) * 12 * 60);
+        //tickValues.push(now);  // ensure the current time is also a tick
+
+        //let xGridTickValues = d3.timeMinute.range(startDate, endDate, (endDate.getTime() - startDate.getTime()) / 1000 / 60 / 60 / 24 / 7 * 3 * 60);
+        let xGridTickValues = tickValues;
+        //xGridTickValues.push(now);  // ensure the current time is also a tick
+
+        svg.append("defs")  // Clip content inside graph area so it doesn't escape on zoom
+            .append("clipPath")
+            .attr("id", "clip")
+            .append("rect")
+            .attr("x", marginLeft)  // The left bound of the clipping rectangle.
+            .attr("y", marginTop)  // The top bound of the clipping rectangle.
+            .attr("width", width - marginLeft - marginRight)  // The width of the clipping rectangle.
+            .attr("height", height - marginTop - marginBottom);  // The height of the clipping rectangle.
+
+        let zoom = d3.zoom()
+            .scaleExtent([1, 10])   // This allows zooming between 1x and 10x
+            .translateExtent([[0, 0], [width, height]])  // This sets the panning limits to the dimensions of the SVG
+            .on("zoom", zoomed);   // The function to be called during zooming
+
+        svg.append("rect") // Rect to capture zoom events
+            .attr("width", width)
+            .attr("height", height)
+            .style("fill", "none")
+            .style("pointer-events", "all")  // This makes sure the rectangle captures all pointer events
+            .call(zoom);
+
+        let zoomableLayer = svg.append("g")
+            .attr("clip-path", "url(#clip)");  // This applies the clip path to the zoomable layer.
+
+        // Add the x-axis.
+        svg.append("g")
+            .attr("class", "x-axis")
+            .attr("transform", `translate(0,${height - marginBottom})`);
+        createXAxis(svg, tickValues, x, dayFormat, timeFormat)
+
+        // Add x-axis grid lines
+        zoomableLayer.append("g")
+            .attr("class", "x-grid")
+            .attr("transform", `translate(0,${marginTop})`)
+            .call(d3.axisBottom(x).tickValues(xGridTickValues)
+                .tickSize(height - marginBottom - marginTop)
+                .tickFormat(''))
+            .selectAll("line")
+            .style("stroke-dasharray", ("3, 3"));
+
+        // Add the y-axis.
+        svg.append("g")
+            .attr("class", "y-axis-left")
+            .attr("transform", `translate(${marginLeft},0)`);
+        svg.append("g")
+            .attr("class", "y-axis-right")
+            .attr("transform", `translate(${width - marginRight},0)`);
+        createYAxis(svg, yLeft, width, marginLeft, marginRight)
+
+        // Y-axis legend text
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0)
+            .attr("x", 0 - (height / 2))
+            .attr("dy", "1em")
+            .style("text-anchor", "middle")
+            .style("fill", "steelblue")   // blue color
+            .style("font-size", `${yLegendTextSize}px`)
+            .attr("font-weight", 700)
+            .text("Wind Speed (km/h)");
+
+        // Add y-axis grid lines
+        zoomableLayer.append("g")
+            .attr("class", "y-grid")
+            .attr("transform", `translate(${marginLeft},0)`)
+            .call(d3.axisLeft(yLeft).tickSize(-width + marginLeft + marginRight).tickFormat(''))
+            .selectAll("line")
+            .style("stroke-dasharray", ("3, 3"));
+
+
+        // Line generator for wave heights
+        let waveHeightLine = d3.line()
+            .x(d => x(d.date))
+            .y(d => yLeft(d.waveHeight))
+            .curve(d3.curveCatmullRom);  // Makes the line curve smoothly
+
+        zoomableLayer.append("path")
+            .attr("class", "waveHeightPath")
+            .datum(data)
+            .attr("fill", "none")
+            .attr("stroke", "steelblue")
+            .attr("stroke-width", 1.5)
+            .attr("d", waveHeightLine);
+
+        zoomableLayer.selectAll(".waveHeightMarker")
+            .data(data)
+            .join("circle")
+            .attr("class", "waveHeightMarker")
+            .attr("cx", d => x(d.date))
+            .attr("cy", d => yLeft(d.waveHeight))
+            .attr("r", waveHeightMarkerRadius)  // this radius can be adjusted based on your visual preference
+            .attr("fill", "steelblue");  // match the color of wave height line
+
+        let tooltip = d3.select("#tooltip");
+
+        zoomableLayer.selectAll(".waveHeightMarker")
+            .on("mouseover", function (event, d) {
+                tooltip.style("display", "block");
+            })
+            .on("mousemove", function (event, d) {
+                tooltip
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 25) + "px")
+                    .html(`Date: ${d.date}<br>Wave Height: ${d.waveHeight}`);
+            })
+            .on("mouseout", function () {
+                tooltip.style("display", "none");
+            });
+
+        barWidth = (width - marginLeft - marginRight) / data.length;
+
+        let arrowDimensions = { width: 8, height: 20 };
+        let path = createArrowPath(arrowDimensions.width, arrowDimensions.height);
+
+        zoomableLayer.selectAll(".directionArrow")
+            .data(data)
+            .join("path")
+            .attr("d", path)
+            .attr("transform", d => {
+                let xPosition = x(d.date);
+                let yPosition = marginTop + 30;
+                let rotation = d.dir;
+                if (rotation != null && !isNaN(rotation)) {
+                    return `translate(${xPosition}, ${yPosition}) rotate(${rotation})`;
+                }
+            })
+            .attr("class", "directionArrow")
+            .attr("fill", "DarkOrange");
+
+        zoomableLayer.selectAll(".directionArrow")
+            .on("mouseover", function (event, d) {
+                tooltip.style("display", "block");
+            })
+            .on("mousemove", function (event, d) {
+                tooltip
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 25) + "px")
+                    .html(`Date: ${d.date}<br>Wave Direction: ${d.dir} (deg)`);
+            })
+            .on("mouseout", function () {
+                tooltip.style("display", "none");
+            });
+
+        // Append the SVG element.
+        graphContainer.append(svg.node());
+
+        function zoomed(event) {
+            let transform = event.transform;
+            // Update the scales
+            let updatedXScale = transform.rescaleX(x);
+            let updatedYScaleLeft = transform.rescaleY(yLeft);
+
+            // Apply new scales to the axes
+            // Compute the visible tick values based on the current domain
+            let visibleTickValues = tickValues.filter(d => (
+                d >= updatedXScale.domain()[0] && d <= updatedXScale.domain()[1]
+            ));
+
+            // Apply new scales to the axes with filtered tick values
+            svg.select(".y-axis-left").call(d3.axisLeft(updatedYScaleLeft));
+            createXAxis(svg, tickValues, updatedXScale, dayFormat, timeFormat);
+
+            // Apply new scales to the grid
+            let yGrid = svg.select(".y-grid").call(d3.axisLeft(updatedYScaleLeft).tickSize(-width + marginLeft + marginRight).tickFormat(''));
+            yGrid.selectAll("line")
+                .style("stroke-dasharray", ("3, 3"));
+
+            let xGrid = svg.select(".x-grid").call(d3.axisBottom(updatedXScale).tickValues(xGridTickValues)
+                .tickSize(height - marginBottom - marginTop)
+                .tickFormat(''));
+            xGrid.selectAll("line")
+                .style("stroke-dasharray", ("3, 3"));
+
+
+            // Recompute data visualization positions for wave height
+            svg.selectAll(".waveHeightPath")
+                .attr("d", waveHeightLine.x(d => updatedXScale(d.date))
+                    .y(d => updatedYScaleLeft(d.waveHeight)));
+
+            // Update positions for wave height markers
+            svg.selectAll(".waveHeightMarker")
+                .attr("cx", d => updatedXScale(d.date))
+                .attr("cy", d => updatedYScaleLeft(d.waveHeight));
+
+            svg.selectAll(".directionArrow")
+                .attr("transform", d => {
+                    let xPosition = updatedXScale(d.date);
+                    let yPosition = marginTop + 30;
+                    let rotation = d.dir;
+                    if (rotation != null && !isNaN(rotation)) {
+                        return `translate(${xPosition}, ${yPosition}) rotate(${rotation})`;
+                    }
+                })
+
+        }
+    }
+
+    function updateGraphRange(startDate, endDate) {
+        d3.select("#graphContainer").selectAll("*").remove();
+        $(".loader").css("display", "block");
+        let baseUrl = '/wind_12hours/';
+        let params = new URLSearchParams({
+            'start-date': formatDateToYYMMDDHH(startDate),
+            'end-date': formatDateToYYMMDDHH(endDate),
+            'station': $("#station").val()
+        });
+
+        let url = `${baseUrl}?${params}`;
+
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                let data_points = [];
+                for (let i = 0; i < data.hour.length; i++) {
+                    let dateTime = convertToJSDate(data.hour[i]);
+                    let ws_value = parseFloat(data.ws_values[i]);
+                    let dp_value = null;
+                    if (i % 12 == 0) { dp_value = parseFloat(data.dp_values[i]) };
+                    data_points.push({
+                        date: d3.timeMinute(dateTime),
+                        waveHeight: ws_value,
+                        dir: dp_value,
+                    });
+                }
+
+                return data_points;
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error.message);
+            }).then(function (data) {
+                $(".loader").css("display", "none");
+                drawGraph(data, startDate, endDate);
+            })
+    }
+
+
+    function createArrowPath(width, height) {
+        let headHeight = height * 0.3;
+        let bodyHeight = height - headHeight;
+        let halfWidth = width / 4;
+
+        let topY = -height / 2;
+        let bottomY = height / 2;
+
+        let path = `
+        M -${halfWidth} ${topY}
+        L ${halfWidth} ${topY}
+        L ${halfWidth} ${topY + bodyHeight}
+        L ${halfWidth * 4} ${topY + bodyHeight}
+        L 0 ${bottomY}
+        L -${halfWidth * 4} ${topY + bodyHeight}
+        L -${halfWidth} ${topY + bodyHeight}
+        Z
+    `;
+
+        return path;
+    }
+
+    function createXAxis(svg, tickValues, scale, dayFormat, timeFormat) {
+        let visibleTickValues = tickValues.filter(d => (
+            d >= scale.domain()[0] && d <= scale.domain()[1]
+        ));
+
+        let xAxisG = svg.select(".x-axis").call(d3.axisBottom(scale).tickValues(visibleTickValues));
+
+        xAxisG.selectAll("text")
+            .data(visibleTickValues)
+            .join("text")
+            .style("text-anchor", "middle")
+            .attr("y", 15)
+            .attr("dy", "0.35em")
+            .text("");
+
+        xAxisG.selectAll("text")
+            .append("tspan")
+            .attr("x", 0)
+            .text(dayFormat);
+
+        xAxisG.selectAll("text")
+            .append("tspan")
+            .attr("x", 0)
+            .attr("dy", "1.2em")
+            .text(timeFormat);
+    }
+
+    function createYAxis(svg, leftScale, width, marginLeft, marginRight) {
+        // Left Axis
+        svg.select(".y-axis-left").call(d3.axisLeft(leftScale));
+
+        // Y Grid lines
+        let yGrid = svg.select(".y-grid")
+            .call(d3.axisLeft(leftScale)
+                .tickSize(-width + marginLeft + marginRight)
+                .tickFormat('')
+            );
+
+        yGrid.selectAll("line").style("stroke-dasharray", ("3, 3"));
+    }
+
+</script>

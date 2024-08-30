@@ -1,0 +1,14 @@
+server {
+        listen 80;
+        server_name 54.253.180.26;
+
+        location / {
+                include proxy_params;
+                proxy_pass http://localhost:8000;
+                proxy_set_header Host $host;
+        }
+        location /static/ {
+                root /home/ec2-user/2023-CITS3200-Team26/backend/staticfiles/;
+        }
+        location = /favicon.ico {access_log off; log_not_found off;}
+}

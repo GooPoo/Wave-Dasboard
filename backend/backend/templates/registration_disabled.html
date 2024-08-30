@@ -1,0 +1,10 @@
+{% extends "two_factor/_base_focus.html" %}
+{% load i18n %}
+
+
+{% block content %}
+<h1>{% block title %}{% trans "Registration is Disabled" %}{% endblock %}</h1>
+
+<p>{% blocktrans trimmed %}Sorry, registration is no longer allowed{% endblocktrans %}</p>
+
+{% endblock %}

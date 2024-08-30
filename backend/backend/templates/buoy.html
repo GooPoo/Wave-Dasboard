@@ -1,0 +1,18 @@
+{% extends "_base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block nav_secret_forecast %}active{% endblock %}
+{% block extra_media %}
+  <link rel="stylesheet" href="{% static 'loader.css' %}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+{% endblock %}
+
+{% block content %}
+  <h1>{% block title %}{% trans "Buoy" %}{% endblock %}</h1>
+
+  <p>{% blocktrans trimmed %}The buoy data.{% endblocktrans %}</p>
+
+  {% include "buoy_graph.html" %}
+{% endblock %}
